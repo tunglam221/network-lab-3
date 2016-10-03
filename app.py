@@ -40,7 +40,7 @@ def query_db(query, args=(), one=False):
     get_db().commit()
     rv = cur.fetchall()
     cur.close()
-    return (rv[0] if rv else None) if one else rv
+    return (rv[-1] if rv else None) if one else rv
 
 def insert(table, fields=(), values=()):
     query = 'INSERT INTO %s (%s) VALUES (%s)' % (
@@ -50,9 +50,9 @@ def insert(table, fields=(), values=()):
     )
     cur = get_db().execute(query, values)
     get_db().commit()
-    id = cur.lastrowid
+    rv = cur.fetchall()
     cur.close()
-    return id
+    return rv
 
 ##################AUTHENTICATION#####################
 def check_auth(username, password):
@@ -90,31 +90,62 @@ def movies():
             data.append(movie)
 
     if request.method == 'POST':
-        data = dict(request.json)
-        values = (data['title'], data['description'], data['director'], data['year'], data['rating'])
-        insert('movies', ('title', 'description', 'director', 'year', 'rating'), values)
+        data = dict(json.loads(request.data))
+        values = (data['title'], data['description'], data['director'], data['year'], 0, 0)
+        insert('movies', ('title', 'description', 'director', 'year', 'rating', 'number_of_votes'), values)
+        data = query_db('select * from movies')[-1:]
 
-    js = json.dumps(data)
-    resp = Response(js, status=200, mimetype='application/json')
+    if request.headers['Content-Type']=='application/json':
+        js = json.dumps(data)
+        resp = Response(js, status=200, mimetype='application/json')
+    elif request.headers['Content-Type']=='text/plain':
+        txt = ''
+        for movie in data:
+            for attribute in movie:
+                txt += '%s: %s\n' % (attribute, movie[attribute])
+            txt+='\n'
+        resp = Response(txt, status=200, mimetype='text/plain')
     return resp
+
+@app.route('/movie/<movie_id>/rate', methods = ['PATCH'])
+def rate(movie_id):
+    data = dict(request.json)
+    movie = query_db('select * from movies WHERE id = ?', (movie_id,), True)
+    if (not movie):
+        data = 'No movie with such ID'
+    else:
+        current_rating = float(movie['rating'])
+        num_votes = int(movie['number_of_votes'])
+        rating = float(data['rating'])
+        new_rating = (current_rating*num_votes+rating)/(num_votes+1)
+        values = 'rating="%s", number_of_votes="%s"' % (new_rating, num_votes+1)
+        query_db("update movies set " + values + " WHERE id = ?", (movie_id,))
+        data = query_db('select * from movies WHERE id = ?', (movie_id,))
+
+    resp = Response(json.dumps(data), status=200, mimetype='application/json')
+    return resp
+
 
 @app.route('/movie/<movie_id>', methods = ['GET', 'PATCH', 'DELETE'])
 def movie(movie_id):
-    if request.method == 'GET':
-        movie = query_db('select * from movies WHERE id = ?', movie_id)
+    movie = query_db('select * from movies WHERE id = ?', (movie_id,))
+    if (not movie):
+        data = 'No movie with such ID'
+    else:
+        data = movie
+        if request.method == 'DELETE':
+            movie = query_db('delete from movies WHERE id = ?', (movie_id,))
 
-    if request.method == 'DELETE':
-        movie = query_db('delete from movies WHERE id = ?', movie_id)
+        if request.method == 'PATCH':
+            data = dict(request.json)
+            values=""
+            for attribute in data:
+                values+='%s = "%s",' % (attribute, data[attribute])
+            values = values[:-1]
+            query_db("update movies set " + values + " WHERE id = ?", (movie_id,))
+            data = query_db('select * from movies WHERE id = ?', (movie_id,))
 
-    if request.method == 'PATCH':
-        data = dict(request.json)
-        values=""
-        for attribute in data:
-            values+='%s = "%s",' % (attribute, data[attribute])
-        values = values[:-1]
-        movie = query_db("update movies set " + values + " WHERE id = ?", movie_id)
-    
-    resp = Response(json.dumps(movie), status=200, mimetype='application/json')
+    resp = Response(json.dumps(data), status=200, mimetype='application/json')
     return resp
 
 @app.route('/users', methods = ['POST'])

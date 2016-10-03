@@ -5,7 +5,8 @@ create table movies (
   description text not null,
   director text not null,
   year integer not null,
-  rating real not null
+  rating real not null,
+  number_of_votes integer not null
 );
 
 create table users (

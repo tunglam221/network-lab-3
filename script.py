@@ -3,55 +3,78 @@ from requests.auth import HTTPBasicAuth
 import json
 from flask import Flask, g, request, Response, json
 
+def make_request(request_type, url, data={}, headers={'Content-Type': 'application/json'}, auth=False):
+	if auth:
+		r = request_type(url, headers=headers, json=data, auth=HTTPBasicAuth('someuser', 'unpredictable'))
+	else:
+		r = request_type(url, headers=headers, json=data)
+	print(r.headers)
+	print(r.text)
+	print()
+
 
 # Create a user
 url = 'http://127.0.0.1:5000/users'
+print("POST " + url)
 user = {'username':'someuser','password':'unpredictable'}
-headers = {'Content-Type': 'application/json'}
-r = requests.post(url, headers=headers, json=user)
-print("POST " + r.url)
-print(r.headers)
-print(r.json())
-print()
+make_request(requests.post, url, user)
 
-# Post a movie
+
+
+# Post a movie in text/plain
 url = 'http://127.0.0.1:5000/movies'
-movie = {'title':'Fight Club', 'description':'Will give you chill', 'director':'David Fincher', 'year':'1999', 'rating':'4.5'}
-headers = {'Content-Type': 'application/json'}
-r = requests.post(url, headers=headers, json=movie, auth=HTTPBasicAuth('someuser', 'unpredictable'))
-print("POST " + r.url)
-print(r.headers)
-print(r.json())
-print()
+print("POST " + url)
+movie = {'title':'Fight Club', 'description':'Will give you chill', 'director':'David Fincher', 'year':'1999'}
+headers = {'Content-Type': 'text/plain'}
+make_request(requests.post, url, movie, headers, True)
 
-# Get all movies
-r = requests.get(url, headers=headers)
-print("GET " + r.url)
-print(r.headers)
-print(r.json())
-print()
+
+# Post a movie in json
+headers = {'Content-Type': 'application/json'}
+make_request(requests.post, url, movie, headers, True)
+
+# Get all movies in text
+url = 'http://127.0.0.1:5000/movies'
+print("GET " + url)
+headers = {'Content-Type': 'text/plain'}
+make_request(requests.get, url, {}, headers, True)
+
+
+# Get all movies in json
+url = 'http://127.0.0.1:5000/movies'
+print("GET " + url)
+headers = {'Content-Type': 'application/json'}
+make_request(requests.get, url, {}, headers, True)
 
 # Get a movie
-url = 'http://127.0.0.1:5000/movie/3'
-r = requests.get(url, headers=headers)
-print("GET " + r.url)
-print(r.headers)
-print(r.json())
-print()
+url = 'http://127.0.0.1:5000/movie/1'
+print("GET " + url)
+make_request(requests.get, url)
 
 # Delete a movie
-url = 'http://127.0.0.1:5000/movie/2'
-r = requests.delete(url, headers=headers)
-print("DELETE " + r.url)
-print(r.headers)
-print(r.json())
-print()
+url = 'http://127.0.0.1:5000/movie/1'
+print("DELETE " + url)
+make_request(requests.delete, url)
 
 # Update a movie
-url = 'http://127.0.0.1:5000/movie/3'
+url = 'http://127.0.0.1:5000/movie/2'
+print("PATCH " + url)
 data = {'description':'this is an updated description'}
-r = requests.patch(url, headers=headers, json=data)
-print("PATCH " + r.url)
-print(r.headers)
-print(r.json())
-print()
+make_request(requests.patch, url, data, headers)
+
+# Rate a movie
+url = 'http://127.0.0.1:5000/movie/2/rate'
+print("PATCH " + url)
+data = {'rating':'3.0'}
+make_request(requests.patch, url, data, headers)
+
+# Rate again
+url = 'http://127.0.0.1:5000/movie/2/rate'
+data = {'rating':'5.0'}
+make_request(requests.patch, url, data, headers)
+
+# root_url = 'http://127.0.0.1:5000/movie/'
+# for i in range(1, 25):
+# 	url= root_url + str(i)
+# 	print(url)
+# 	make_request(requests.delete, url)
