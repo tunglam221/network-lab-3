@@ -1,3 +1,6 @@
+# Lim Zhi Han Ryan, 1000985
+# Nguyen Tung Lam, 1001289
+
 import requests
 from requests.auth import HTTPBasicAuth
 import json
@@ -18,7 +21,6 @@ url = 'http://127.0.0.1:5000/users'
 print("POST " + url)
 user = {'username':'someuser','password':'unpredictable'}
 make_request(requests.post, url, user)
-
 
 
 # Post a movie in text/plain

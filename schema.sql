@@ -1,3 +1,6 @@
+# Lim Zhi Han Ryan, 1000985
+# Nguyen Tung Lam, 1001289
+
 drop table if exists entries;
 create table movies (
   id integer primary key autoincrement,

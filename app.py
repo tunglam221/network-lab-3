@@ -1,3 +1,6 @@
+# Lim Zhi Han Ryan, 1000985
+# Nguyen Tung Lam, 1001289
+
 import sqlite3
 from flask import Flask, g, request, Response, json, jsonify
 from functools import wraps
